@@ -15,7 +15,7 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Flutter Demo',
+      title: 'RiverPod2 Course',
       darkTheme: ThemeData.dark(),
       themeMode: ThemeMode.dark,
       home: const MyHomePage(),
@@ -23,22 +23,36 @@ class MyApp extends StatelessWidget {
   }
 }
 
-extension AddisonTools<T extends num> on T? {
-  T? operator +(T? other) {
-    final shadow = this;
-    if (shadow == null) return null;
-    return shadow + (other ?? 0) as T;
-  }
+enum City {
+  stockholm,
+  paris,
+  tokyo,
 }
 
-class CounterNotifier extends StateNotifier<int?> {
-  CounterNotifier() : super(null);
-  void increment() => state = (state == null ? 1 : state + 1);
+typedef WeatherEmoji = String;
+Future<WeatherEmoji> getWeather(City city) async {
+  await Future.delayed(const Duration(seconds: 1));
+  return {
+        City.stockholm: '❄',
+        City.paris: '⛈',
+        City.tokyo: '🌪',
+      }[city] ??
+      '🌅';
 }
 
-final counterProvider = StateNotifierProvider<CounterNotifier, int?>(
-  (ref) => CounterNotifier(),
-);
+const unknownWeatherEmoji = '🤷';
+
+// UI writes to and reads from this
+final cityProvider = StateProvider<City?>((ref) {
+  return null;
+});
+
+// UI reads this
+final weatherProvider = FutureProvider<WeatherEmoji>((ref) async {
+  final city = ref.watch(cityProvider);
+  if (city == null) return unknownWeatherEmoji;
+  return getWeather(city);
+});
 
 class MyHomePage extends ConsumerWidget {
   const MyHomePage({super.key});
@@ -47,29 +61,51 @@ class MyHomePage extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     return Scaffold(
       appBar: AppBar(
-        title: Consumer(
-          builder: (context, ref, child) {
-            final counter = ref.watch(counterProvider);
-            final text = counter?.toString() ?? 'Press the button';
-            return Text(
-              text,
-              style: Theme.of(context).textTheme.headline3,
-            );
-          },
-        ),
+        title: const Text('weather'),
         centerTitle: true,
       ),
-      body: Center(
-        child: TextButton.icon(
-          onPressed: ref.read(counterProvider.notifier).increment,
-          icon: const Icon(Icons.add),
-          label: const Text(
-            'add',
-            style: TextStyle(
-              fontSize: 30,
+      body: Column(
+        children: <Widget>[
+          SizedBox(
+            height: 100,
+            child: Center(
+              child: Consumer(
+                builder: (context, ref, child) {
+                  final currentWeather = ref.watch(weatherProvider);
+                  return currentWeather.when(
+                    data: (weatherEmoji) => Text(
+                      weatherEmoji,
+                      style: const TextStyle(
+                        fontSize: 40,
+                      ),
+                    ),
+                    error: (_, __) => const Text('Something wrong !!'),
+                    loading: () => const Text('Loading...'),
+                  );
+                },
+              ),
             ),
           ),
-        ),
+          Expanded(
+            child: Consumer(
+              builder: (context, ref, child) => ListView.builder(
+                itemCount: City.values.length,
+                itemBuilder: (BuildContext context, int index) {
+                  final city = City.values[index];
+                  final isSelected = ref.watch(cityProvider) == city;
+                  return ListTile(
+                    title: Text(City.values[index].name),
+                    trailing: isSelected ? const Icon(Icons.check) : null,
+                    onTap: () {
+                      ref.read(cityProvider.notifier).state = city;
+                    },
+                    selected: isSelected,
+                  );
+                },
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
