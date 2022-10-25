@@ -1,8 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
+import 'package:riverpod2_course/film.dart';
 import 'package:riverpod2_course/provider_logger.dart';
-
-import 'film.dart';
 
 void main() {
   runApp(
@@ -11,20 +10,6 @@ void main() {
       child: const MyApp(),
     ),
   );
-}
-
-class MyApp extends StatelessWidget {
-  const MyApp({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'Flutter Demo',
-      darkTheme: ThemeData.dark(),
-      themeMode: ThemeMode.dark,
-      home: const MyHomePage(),
-    );
-  }
 }
 
 const allFilms = [
@@ -54,25 +39,6 @@ const allFilms = [
   ),
 ];
 
-class FilmNotifier extends StateNotifier<List<Film>> {
-  FilmNotifier() : super(allFilms);
-
-  void updateFilm({
-    required Film film,
-    required bool isFav,
-  }) {
-    state = state
-        .map((f) => f.id == film.id ? f.copyWith(isFavorite: isFav) : f)
-        .toList();
-  }
-}
-
-enum FavoriteStatus {
-  all,
-  favorite,
-  nonFavorite,
-}
-
 final favoriteStatusProvider = StateProvider<FavoriteStatus>(
   (ref) => FavoriteStatus.all,
 );
@@ -93,6 +59,25 @@ final filmsProvider = Provider<List<Film>>((ref) {
       return allFilms.where((film) => !film.isFavorite).toList();
   }
 });
+
+enum FavoriteStatus {
+  all,
+  favorite,
+  nonFavorite,
+}
+
+class FilmNotifier extends StateNotifier<List<Film>> {
+  FilmNotifier() : super(allFilms);
+
+  void updateFilm({
+    required Film film,
+    required bool isFav,
+  }) {
+    state = state
+        .map((f) => f.id == film.id ? f.copyWith(isFavorite: isFav) : f)
+        .toList();
+  }
+}
 
 // final favFilmsProvider = Provider<List<Film>>(
 //   (ref) =>
@@ -162,6 +147,20 @@ class FilterWidget extends ConsumerWidget {
           ref.read(favoriteStatusProvider.state).state = newStatus;
         }
       },
+    );
+  }
+}
+
+class MyApp extends StatelessWidget {
+  const MyApp({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return MaterialApp(
+      title: 'Flutter Demo',
+      darkTheme: ThemeData.dark(),
+      themeMode: ThemeMode.dark,
+      home: const MyHomePage(),
     );
   }
 }
